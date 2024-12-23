@@ -7,7 +7,7 @@
 - 支持将网页内容转换为 Markdown 格式
 - 自动下载和保存网页中的图片
 - 保持原网页的基本格式结构
-- 支持知乎专栏文章的特殊处理
+- 支持多个特定网站的定制化处理
 - 图片文件使用唯一文件名，避免重名覆盖
 - 支持多种图片格式（JPG、PNG、GIF、WebP）
 - 自动处理相对路径和绝对路径的图片链接
@@ -52,6 +52,14 @@ python web2md.py https://example.com/article output.md -i images
 - 使用知乎 API 获取文章内容
 - 正确处理知乎文章中的图片
 
+### SegmentFault
+- 自动处理 SegmentFault 的网站特性
+- 支持文章内容的完整提取
+- 处理特殊的图片加载机制
+- 保持文章格式和样式
+- 支持图片防盗链处理
+- 自动处理压缩内容
+
 ## 系统要求
 
 - Python 3.6 或更高版本
@@ -86,4 +94,4 @@ python web2md.py https://example.com/article output.md -i images
 2. URL是否正确
 3. 是否有足够的磁盘空间
 4. 是否有写入权限
-5. 依赖包是否正确安装 
+5. 依赖包是否正确安装

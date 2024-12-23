@@ -53,36 +53,37 @@ class Web2Markdown:
                 'sec-fetch-site': 'cross-site',
             }
         elif 'segmentfault.com' in url:
+            # SegmentFault 需要特定的请求头来模拟浏览器行为
             self.headers.update({
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-                'Cache-Control': 'max-age=0',
-                'Connection': 'keep-alive',
-                'Host': 'segmentfault.com',
-                'Referer': 'https://segmentfault.com/',
-                'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-                'sec-ch-ua-mobile': '?0',
-                'sec-ch-ua-platform': '"macOS"',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'same-origin',
-                'Sec-Fetch-User': '?1',
-                'Upgrade-Insecure-Requests': '1',
+                'Accept-Encoding': 'gzip, deflate, br',  # 支持压缩内容
+                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',  # 语言偏好
+                'Cache-Control': 'max-age=0',  # 禁用缓存
+                'Connection': 'keep-alive',  # 保持连接
+                'Host': 'segmentfault.com',  # 指定主机名
+                'Referer': 'https://segmentfault.com/',  # 来源页面
+                'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',  # 浏览器标识
+                'sec-ch-ua-mobile': '?0',  # 非移动设备
+                'sec-ch-ua-platform': '"macOS"',  # 操作系统平台
+                'Sec-Fetch-Dest': 'document',  # 请求目标类型
+                'Sec-Fetch-Mode': 'navigate',  # 导航模式
+                'Sec-Fetch-Site': 'same-origin',  # 同源请求
+                'Sec-Fetch-User': '?1',  # 用户触发的请求
+                'Upgrade-Insecure-Requests': '1',  # 升级不安全请求
             })
             
-            # 设置 SegmentFault 图片请求头
+            # SegmentFault 图片请求头设置
             self.image_headers = {
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+                'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',  # 支持多种图片格式
                 'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-                'Referer': 'https://segmentfault.com/',
+                'Referer': 'https://segmentfault.com/',  # 防盗链处理
                 'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
                 'sec-ch-ua-mobile': '?0',
                 'sec-ch-ua-platform': '"macOS"',
-                'sec-fetch-dest': 'image',
-                'sec-fetch-mode': 'no-cors',
-                'sec-fetch-site': 'cross-site',
+                'sec-fetch-dest': 'image',  # 图片资源
+                'sec-fetch-mode': 'no-cors',  # 无CORS请求
+                'sec-fetch-site': 'cross-site',  # 跨站请求
             }
         else:
             self.image_headers = self.headers
@@ -115,27 +116,42 @@ class Web2Markdown:
             return None
 
     def get_segmentfault_content(self, url):
-        """获取 SegmentFault 文章内容"""
+        """获取 SegmentFault 文章内容
+        
+        Args:
+            url (str): SegmentFault 文章的URL
+            
+        Returns:
+            str: 处理后的HTML内容，包含文章标题和正文
+            None: 如果获取失败
+            
+        处理步骤：
+        1. 发送GET请求获取页面内容
+        2. 使用BeautifulSoup解析HTML
+        3. 提取文章标题和正文内容
+        4. 组合成新的HTML字符串返回
+        """
         try:
+            # 发送请求获取页面内容
             response = self.session.get(url, headers=self.headers, timeout=30)
             response.raise_for_status()
             
-            # 使用 BeautifulSoup 解析页面
+            # 使用BeautifulSoup解析页面
             soup = BeautifulSoup(response.text, 'html.parser')
             
-            # 获取文章标题
+            # 获取文章标题（h1标签带class='h1'）
             title = soup.find('h1', class_='h1')
             if title:
                 title = title.get_text(strip=True)
             
-            # 获取文章内容
+            # 获取文章内容（article标签带class='article-content'）
             content = soup.find('article', class_='article-content')
             
             if not content:
-                raise Exception("无法找到文章内容")
+                raise Exception("无法找到文章内容，可能是页面结构已变化")
             
-            # 构建完整的HTML
-            html = f'<h1>{title}</h1>{str(content)}'
+            # 构建完整的HTML，确保标题和内容之间有适当的间隔
+            html = f'<h1>{title}</h1>\n{str(content)}'
             return html
             
         except Exception as e:
@@ -306,7 +322,7 @@ class Web2Markdown:
             # 跳过可能影响布局的标签
             if tag.name in ['figure', 'img', 'br', 'hr', 'div', 'p', 'figcaption']:
                 continue
-            # 跳过标题���签
+            # 跳过标题标签
             if tag.name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
                 continue
             # 跳过包含图片的标签
