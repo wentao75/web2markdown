@@ -52,6 +52,38 @@ class Web2Markdown:
                 'sec-fetch-mode': 'no-cors',
                 'sec-fetch-site': 'cross-site',
             }
+        elif 'segmentfault.com' in url:
+            self.headers.update({
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+                'Cache-Control': 'max-age=0',
+                'Connection': 'keep-alive',
+                'Host': 'segmentfault.com',
+                'Referer': 'https://segmentfault.com/',
+                'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+                'sec-ch-ua-mobile': '?0',
+                'sec-ch-ua-platform': '"macOS"',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'same-origin',
+                'Sec-Fetch-User': '?1',
+                'Upgrade-Insecure-Requests': '1',
+            })
+            
+            # 设置 SegmentFault 图片请求头
+            self.image_headers = {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+                'Referer': 'https://segmentfault.com/',
+                'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+                'sec-ch-ua-mobile': '?0',
+                'sec-ch-ua-platform': '"macOS"',
+                'sec-fetch-dest': 'image',
+                'sec-fetch-mode': 'no-cors',
+                'sec-fetch-site': 'cross-site',
+            }
         else:
             self.image_headers = self.headers
 
@@ -80,6 +112,34 @@ class Web2Markdown:
             
         except Exception as e:
             print(f"获取知乎文章内容失败: {str(e)}")
+            return None
+
+    def get_segmentfault_content(self, url):
+        """获取 SegmentFault 文章内容"""
+        try:
+            response = self.session.get(url, headers=self.headers, timeout=30)
+            response.raise_for_status()
+            
+            # 使用 BeautifulSoup 解析页面
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # 获取文章标题
+            title = soup.find('h1', class_='h1')
+            if title:
+                title = title.get_text(strip=True)
+            
+            # 获取文章内容
+            content = soup.find('article', class_='article-content')
+            
+            if not content:
+                raise Exception("无法找到文章内容")
+            
+            # 构建完整的HTML
+            html = f'<h1>{title}</h1>{str(content)}'
+            return html
+            
+        except Exception as e:
+            print(f"获取 SegmentFault 文章内容失败: {str(e)}")
             return None
 
     def download_image(self, img_url):
@@ -246,7 +306,7 @@ class Web2Markdown:
             # 跳过可能影响布局的标签
             if tag.name in ['figure', 'img', 'br', 'hr', 'div', 'p', 'figcaption']:
                 continue
-            # 跳过标题标签
+            # 跳过标题���签
             if tag.name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
                 continue
             # 跳过包含图片的标签
@@ -376,7 +436,7 @@ class Web2Markdown:
         return content.strip() + '\n'
 
     def convert(self):
-        """将网页��换为Markdown"""
+        """将网页转换为Markdown"""
         try:
             print(f"\n开始处理网页: {self.url}")
             
@@ -385,6 +445,10 @@ class Web2Markdown:
                 html_content = self.get_zhihu_content(self.url)
                 if not html_content:
                     raise Exception("无法获取知乎文章内容")
+            elif 'segmentfault.com' in self.url:
+                html_content = self.get_segmentfault_content(self.url)
+                if not html_content:
+                    raise Exception("无法获取 SegmentFault 文章内容")
             else:
                 response = self.session.get(self.url, headers=self.headers, timeout=30)
                 response.raise_for_status()
